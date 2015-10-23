@@ -261,7 +261,7 @@ public class AchFileFormatReader {
 	private void handleFileControl(FieldReader reader) throws AchFileFormatException, IOException {
 		
 		if (achFile.control != null) {
-			throw new AchFileFormatException("Found a second ach file control record in the same file; only one is allowed.");
+			//throw new AchFileFormatException("Found a second ach file control record in the same file; only one is allowed.");
 		}
 		
 		achFile.control = new AchFileControlFormat();

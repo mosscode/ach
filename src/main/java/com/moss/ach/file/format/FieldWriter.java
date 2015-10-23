@@ -48,6 +48,7 @@ public class FieldWriter {
 	
 	private final Log log = LogFactory.getLog(this.getClass());
 	private final Writer writer;
+	public static int lineCounter = 1;
 	
 	public FieldWriter(Writer writer) {
 		this.writer = writer;
@@ -114,6 +115,7 @@ public class FieldWriter {
 	
 	public void newRecord() throws IOException {
 		writer.write("\n");
+		lineCounter++;
 	}
 	
 	public void flush() throws IOException {
