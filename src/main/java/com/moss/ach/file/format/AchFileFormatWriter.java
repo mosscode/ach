@@ -45,41 +45,37 @@ public class AchFileFormatWriter {
 
 	private final FieldWriter writer;
 	private final AchFileFormat file;
-	
+
 	public AchFileFormatWriter(AchFileFormat file, Writer writer) {
 		this.file = file;
 		this.writer = new FieldWriter(writer);
 	}
-	
+
 	public void write() throws AchFileFormatException, IOException {
-		
+
 		writeFileHeader();
-		
+
 		for (AchBatchFormat batch : file.batches) {
-			
+
 			writeBatchHeader(batch.header);
-			
+
 			for (AchEntryDetailFormat entry : batch.entries) {
-				
+
 				writeDetailAddendaEntries(entry);
 			}
-			
+
 			writeBatchControl(batch.control);
 		}
-		
+
 		writeFileControl();
-		
-		/*
-		 * TODO: The ach specs say to pad any unused portions of the remaining 
-		 * block with the character '9'. However, the legacy ach stuff did not 
-		 * do this. So, for the moment, this is not implemented.
-		 */
-		
+
+		writeTrail();
+
 		writer.close();
 	}
-	
+
 	private void writeFileHeader() throws AchFileFormatException, IOException {
-		
+
 		writer.write(RecordTypeField.class, file.header.recordType);
 		writer.write(PriorityCodeField.class, file.header.priorityCode);
 		writer.write(ImmediateDestinationField.class, file.header.immediateDestination);
@@ -94,11 +90,11 @@ public class AchFileFormatWriter {
 		writer.write(ImmediateOriginNameField.class, file.header.immediateOriginName);
 		writer.write(ReferenceCodeField.class, file.header.referenceCode);
 	}
-	
+
 	private void writeBatchHeader(AchBatchHeaderFormat header) throws AchFileFormatException, IOException {
-		
+
 		writer.newRecord();
-		
+
 		writer.write(RecordTypeField.class, header.recordType);
 		writer.write(ServiceClassCodeField.class, header.serviceClassCode);
 		writer.write(CompanyNameField.class, header.companyName);
@@ -113,15 +109,15 @@ public class AchFileFormatWriter {
 		writer.write(OriginatingDfiIdentificationField.class, header.originatingDfiIdentification);
 		writer.write(BatchNumberField.class, header.batchNumber);
 	}
-	
+
 	private void writeDetailAddendaEntries(AchEntryDetailFormat e) throws AchFileFormatException, IOException {
-		
+
 		if (e instanceof RCKEntryFormat) {
-			
+
 			RCKEntryFormat entry = (RCKEntryFormat)e;
-			
+
 			writer.newRecord();
-			
+
 			writer.write(RecordTypeField.class, entry.recordType);
 			writer.write(TransactionCodeField.class, entry.transactionCode);
 			writer.write(ReceivingDfiIdentificationField.class, entry.receivingDfiIdentification);
@@ -133,14 +129,14 @@ public class AchFileFormatWriter {
 			writer.write(DiscretionaryDataField.class, entry.discretionaryData);
 			writer.write(AddendaRecordIndicatorField.class, entry.addendaRecordIndicator);
 			writer.write(TraceNumberField.class, entry.traceNumber);
-			
+
 		}
 		else if (e instanceof PPDEntryFormat) {
-			
+
 			PPDEntryFormat entry = (PPDEntryFormat)e;
-			
+
 			writer.newRecord();
-			
+
 			writer.write(RecordTypeField.class, entry.recordType);
 			writer.write(TransactionCodeField.class, entry.transactionCode);
 			writer.write(ReceivingDfiIdentificationField.class, entry.receivingDfiIdentification);
@@ -152,10 +148,10 @@ public class AchFileFormatWriter {
 			writer.write(DiscretionaryDataField.class, entry.discretionaryData);
 			writer.write(AddendaRecordIndicatorField.class, entry.addendaRecordIndicator);
 			writer.write(TraceNumberField.class, entry.traceNumber);
-			
+
 			if (entry.addenda != null) {
 				writer.newRecord();
-				
+
 				writer.write(RecordTypeField.class, entry.addenda.recordType);
 				writer.write(AddendaTypeCodeField.class, entry.addenda.addendaTypeCode);
 				writer.write(PaymentRelatedInformationField.class, entry.addenda.paymentRelatedInformation);
@@ -167,11 +163,11 @@ public class AchFileFormatWriter {
 			throw new RuntimeException("Support for detail entries of standard entry class " + e.getClass().getName() + " has not been implemented");
 		}
 	}
-	
+
 	private void writeBatchControl(AchBatchControlFormat control) throws AchFileFormatException, IOException {
-		
+
 		writer.newRecord();
-		
+
 		writer.write(RecordTypeField.class, control.recordType);
 		writer.write(ServiceClassCodeField.class, control.serviceClassCode);
 		writer.write(BatchControlEntryAddendaCountField.class, control.entryAddendaCount);
@@ -184,11 +180,11 @@ public class AchFileFormatWriter {
 		writer.write(OriginatingDfiIdentificationField.class, control.originatingDfiIdentification);
 		writer.write(BatchNumberField.class, control.batchNumber);
 	}
-	
+
 	private void writeFileControl() throws AchFileFormatException, IOException {
-		
+
 		writer.newRecord();
-		
+
 		writer.write(RecordTypeField.class, file.control.recordType);
 		writer.write(BatchCountField.class, file.control.batchCount);
 		writer.write(BlockCountField.class, file.control.blockCount);
@@ -198,4 +194,12 @@ public class AchFileFormatWriter {
 		writer.write(TotalCreditEntryDollarAmountInFileField.class, file.control.totalCreditEntryDollarAmountInFile);
 		writer.write(FileControlReservedField.class, file.control.reserved);
 	}
+
+    private void writeTrail() throws IOException, AchFileFormatException {
+        int numberOfTrailingLines = 10 - (FieldWriter.lineCounter % 10);
+        for (int i = 0; i < numberOfTrailingLines; i++) {
+            writer.newRecord();
+            writer.write(TrailField.class, TrailField.TRAIL_LINE);
+        }
+    }
 }
